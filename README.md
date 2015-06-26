@@ -15,7 +15,7 @@ go build
 ## API Example
 
 Query Series:
-curl http://127.0.0.1:4080/api/v1/query?series=world
+curl http://127.0.0.1:4080/api/v1/query?series=world (Optional parameters order=asc|desc, limit, offset)
 
 Write Series:
 curl http://127.0.0.1:4080/api/v1/write?series=world&value=hello
