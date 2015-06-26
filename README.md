@@ -20,7 +20,7 @@ curl http://127.0.0.1:4080/api/v1/query?series=world
 Write Series:
 curl http://127.0.0.1:4080/api/v1/write?series=world&value=hello
 
-Count Series
+Count Series:
 curl http://127.0.0.1:4080/api/v1/count?series=world
 
 Delete Series:

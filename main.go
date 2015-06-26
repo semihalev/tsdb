@@ -286,6 +286,10 @@ func dbstats(c *gin.Context) {
 }
 
 func backup(c *gin.Context) {
+	if *flagnosync {
+		db.Sync()
+	}
+
 	err := db.View(func(tx *bolt.Tx) error {
 		filename := fmt.Sprintf("backup_%d.db", time.Now().UnixNano())
 
