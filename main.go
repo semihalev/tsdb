@@ -121,6 +121,11 @@ func write(c *gin.Context) {
 		return
 	}
 
+	keytime := c.Query("time")
+	if keytime == "" {
+		keytime = strconv.FormatInt(time.Now().UnixNano(), 10)
+	}
+
 	value := c.Query("value")
 	if value == "" {
 		c.JSON(http.StatusOK, gin.H{
@@ -136,8 +141,7 @@ func write(c *gin.Context) {
 			return err
 		}
 
-		s := strconv.FormatInt(time.Now().UnixNano(), 10)
-		key := []byte(s)
+		key := []byte(keytime)
 
 		if err != nil {
 			return err
