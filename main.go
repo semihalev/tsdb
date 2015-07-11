@@ -111,6 +111,61 @@ func query(c *gin.Context) {
 	})
 }
 
+func asyncwrite(c *gin.Context) {
+	series := c.Query("series")
+	if series == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "error",
+			"message": "series need",
+		})
+		return
+	}
+
+	keytime := c.Query("time")
+	if keytime == "" {
+		keytime = strconv.FormatInt(time.Now().UnixNano(), 10)
+	}
+
+	value := c.Query("value")
+	if value == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "error",
+			"message": "value need",
+		})
+		return
+	}
+
+	go func() {
+		err := db.Update(func(tx *bolt.Tx) error {
+			bucket, err := tx.CreateBucketIfNotExists([]byte(series))
+			if err != nil {
+				return err
+			}
+
+			key := []byte(keytime)
+
+			if err != nil {
+				return err
+			}
+
+			err = bucket.Put(key, []byte(value))
+			if err != nil {
+				return err
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			log.Println("async write error", err)
+		}
+	}()
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "ok",
+	})
+}
+
 func write(c *gin.Context) {
 	series := c.Query("series")
 	if series == "" {
@@ -366,6 +421,7 @@ func main() {
 		v1.GET("/query", query)
 		v1.GET("/delete", delete)
 		v1.GET("/write", write)
+		v1.GET("/asyncwrite", asyncwrite)
 		v1.GET("/count", count)
 		v1.GET("/deletebytime", deletebytime)
 		v1.GET("/backup", backup)
