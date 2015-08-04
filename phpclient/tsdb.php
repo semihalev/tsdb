@@ -15,16 +15,27 @@ abstract class tsdb {
 		return $result["result"];
 	}
 
-	public static function write($series, $value, $time = "") {
-                $ch = self::getCurl("write", array("series" => $series, "value" => $value, "time" => $time));
-                $result = self::execCurl($ch, true);
+	public static function write( $series, $value, $time = "", $ttl = "0s") {
+		$ch = self::getCurl( "write", array( "series" => $series, "value" => $value, "time" => $time, "ttl" => $ttl ) );
+		$result = self::execCurl( $ch, true );
 
-                if (isset($result["status"]) && $result["status"] == "error") {
-                        throw new \RuntimeException($result["message"]);
-                }
+		if ( isset( $result["status"] ) && $result["status"] == "error" ) {
+			throw new \RuntimeException( $result["message"] );
+		}
 
-                return true;
-        }
+		return true;
+	}
+
+	public static function asyncwrite( $series, $value, $time = "", $ttl = "0s") {
+		$ch = self::getCurl( "asyncwrite", array( "series" => $series, "value" => $value, "time" => $time, "ttl" => $ttl ) );
+		$result = self::execCurl( $ch, true );
+
+		if ( isset( $result["status"] ) && $result["status"] == "error" ) {
+			throw new \RuntimeException( $result["message"] );
+		}
+
+		return true;
+	}
 
 	public static function delete( $series ) {
 		$ch = self::getCurl( "delete", array( "series" => $series ) );

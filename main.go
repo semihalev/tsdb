@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"github.com/boltdb/bolt"
@@ -23,12 +24,18 @@ var (
 	flaghttp     = flag.String("http", ":4080", "web server listen addr")
 	flagcpus     = flag.Int("cpus", 1, "Set the maximum number of CPUs to use")
 	flagdb       = flag.String("db", "ts.db", "Database path")
-	flagsynctime = flag.String("sync", "120s", "sync time in seconds, if nosync=true")
-	flagnosync   = flag.Bool("nosync", true, "auto sync")
+	flagsynctime = flag.String("sync", "1s", "sync time in seconds, if nosync=true")
+	flagnosync   = flag.Bool("nosync", false, "auto sync")
+	flagexpire   = flag.String("expire", "0", "default key expire time  default:no-expire")
 )
 
 var db *bolt.DB
 var stats bolt.Stats
+var defaultexpire time.Duration
+
+const (
+	TTL_SERIES = "_TTL_SERIES"
+)
 
 func query(c *gin.Context) {
 	series := c.Query("series")
@@ -135,11 +142,32 @@ func asyncwrite(c *gin.Context) {
 		return
 	}
 
+	ttl := c.Query("ttl")
+	if ttl != "" {
+		_, err := time.ParseDuration(ttl)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"status":  "error",
+				"message": err.Error(),
+			})
+			return
+		}
+	} else {
+		ttl = "0"
+	}
+
 	go func() {
-		err := db.Update(func(tx *bolt.Tx) error {
-			bucket, err := tx.CreateBucketIfNotExists([]byte(series))
-			if err != nil {
-				return err
+		err := db.Batch(func(tx *bolt.Tx) error {
+			bucket := tx.Bucket([]byte(series))
+			var err error
+			if bucket == nil {
+				bucket, err = tx.CreateBucket([]byte(series))
+				if err != nil {
+					return err
+				}
+
+				bttl := tx.Bucket([]byte(TTL_SERIES))
+				bttl.Put([]byte(series), []byte(ttl))
 			}
 
 			key := []byte(keytime)
@@ -190,10 +218,31 @@ func write(c *gin.Context) {
 		return
 	}
 
-	err := db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte(series))
+	ttl := c.Query("ttl")
+	if ttl != "" {
+		_, err := time.ParseDuration(ttl)
 		if err != nil {
-			return err
+			c.JSON(http.StatusOK, gin.H{
+				"status":  "error",
+				"message": err.Error(),
+			})
+			return
+		}
+	} else {
+		ttl = "0"
+	}
+
+	err := db.Batch(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(series))
+		var err error
+		if bucket == nil {
+			bucket, err = tx.CreateBucket([]byte(series))
+			if err != nil {
+				return err
+			}
+
+			bttl := tx.Bucket([]byte(TTL_SERIES))
+			bttl.Put([]byte(series), []byte(ttl))
 		}
 
 		key := []byte(keytime)
@@ -234,7 +283,7 @@ func delete(c *gin.Context) {
 		return
 	}
 
-	err := db.Update(func(tx *bolt.Tx) error {
+	err := db.Batch(func(tx *bolt.Tx) error {
 		err := tx.DeleteBucket([]byte(series))
 		if err != nil {
 			return err
@@ -318,7 +367,7 @@ func deletebytime(c *gin.Context) {
 		return
 	}
 
-	err := db.Update(func(tx *bolt.Tx) error {
+	err := db.Batch(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(series))
 		if bucket == nil {
 			return fmt.Errorf("Series not found!")
@@ -365,6 +414,56 @@ func backup(c *gin.Context) {
 	}
 }
 
+func expire() {
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+
+	for _ = range ticker.C {
+		log.Println("Expire keys batch running...")
+		expirecounter := 0
+
+		db.Batch(func(tx *bolt.Tx) error {
+			now := time.Now()
+			bttl := tx.Bucket([]byte(TTL_SERIES))
+			var expiretime string
+
+			tx.ForEach(func(series []byte, b *bolt.Bucket) error {
+				if string(series) == TTL_SERIES {
+					return nil
+				}
+
+				ttl, _ := time.ParseDuration(string(bttl.Get(series)))
+
+				if ttl > 0 {
+					expiretime = strconv.FormatInt(now.Add(-ttl).UnixNano(), 10)
+				} else if defaultexpire > 0 {
+					expiretime = strconv.FormatInt(now.Add(-defaultexpire).UnixNano(), 10)
+				} else {
+					return nil
+				}
+
+				log.Println(string(series), ttl, defaultexpire)
+
+				c := b.Cursor()
+
+				min := []byte("1")
+				max := []byte(expiretime)
+
+				for k, _ := c.Seek(min); k != nil && bytes.Compare(k, max) <= 0; k, _ = c.Next() {
+					b.Delete(k)
+					expirecounter++
+				}
+
+				return nil
+			})
+
+			return nil
+		})
+
+		log.Println("Expire keys batch finished.", expirecounter, "key expired.")
+	}
+}
+
 func main() {
 	flag.Parse()
 
@@ -381,12 +480,24 @@ func main() {
 	}
 	defer db.Close()
 
+	db.Batch(func(tx *bolt.Tx) error {
+		tx.CreateBucketIfNotExists([]byte(TTL_SERIES))
+		return nil
+	})
+
 	db.NoSync = *flagnosync
+
+	defaultexpire, err = time.ParseDuration(*flagexpire)
+	if err != nil {
+		log.Fatal("parse expire duration error", err)
+	}
 
 	sync, err := time.ParseDuration(*flagsynctime)
 	if err != nil {
-		log.Fatal("parse duration error", err)
+		log.Fatal("parse sync duration error", err)
 	}
+
+	go expire()
 
 	go func() {
 		prev := db.Stats()
