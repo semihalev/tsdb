@@ -413,14 +413,21 @@ func backup(c *gin.Context) {
 }
 
 func expire() {
-	ticker := time.NewTicker(60 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	for _ = range ticker.C {
 		log.Println("Expire keys batch running...")
 		expirecounter := 0
 
-		db.Batch(func(tx *bolt.Tx) error {
+		func() {
+			tx, err := db.Begin(true)
+			if err != nil {
+				return
+			}
+
+			defer tx.Rollback()
+
 			now := time.Now()
 			bttl := tx.Bucket([]byte(TTL_SERIES))
 			var expiretime string
@@ -453,8 +460,8 @@ func expire() {
 				return nil
 			})
 
-			return nil
-		})
+			tx.Commit()
+		}()
 
 		log.Println("Expire keys batch finished.", expirecounter, "key expired.")
 	}
