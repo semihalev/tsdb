@@ -158,7 +158,7 @@ func asyncwrite(c *gin.Context) {
 	}
 
 	go func() {
-		err := db.Batch(func(tx *bolt.Tx) error {
+		err := db.Update(func(tx *bolt.Tx) error {
 			bucket := tx.Bucket([]byte(series))
 			var err error
 			if bucket == nil {
@@ -233,7 +233,7 @@ func write(c *gin.Context) {
 		ttl = "0"
 	}
 
-	err := db.Batch(func(tx *bolt.Tx) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(series))
 		var err error
 		if bucket == nil {
@@ -284,7 +284,7 @@ func delete(c *gin.Context) {
 		return
 	}
 
-	err := db.Batch(func(tx *bolt.Tx) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		err := tx.DeleteBucket([]byte(series))
 		if err != nil {
 			return err
@@ -365,7 +365,7 @@ func deletebytime(c *gin.Context) {
 		return
 	}
 
-	err := db.Batch(func(tx *bolt.Tx) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(series))
 		if bucket == nil {
 			return fmt.Errorf("Series not found!")
