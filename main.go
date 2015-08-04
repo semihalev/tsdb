@@ -442,8 +442,6 @@ func expire() {
 					return nil
 				}
 
-				log.Println(string(series), ttl, defaultexpire)
-
 				c := b.Cursor()
 
 				min := []byte("1")
