@@ -480,7 +480,7 @@ func main() {
 	}
 	defer db.Close()
 
-	db.Batch(func(tx *bolt.Tx) error {
+	db.Update(func(tx *bolt.Tx) error {
 		tx.CreateBucketIfNotExists([]byte(TTL_SERIES))
 		return nil
 	})
