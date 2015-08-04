@@ -27,6 +27,7 @@ var (
 	flagsynctime = flag.String("sync", "1s", "sync time in seconds, if nosync=true")
 	flagnosync   = flag.Bool("nosync", false, "auto sync")
 	flagexpire   = flag.String("expire", "0", "default key expire time  default:no-expire")
+	flagpprof    = flag.Bool("pprof", false, "enable disable Go profiling")
 )
 
 var db *bolt.DB
@@ -532,6 +533,8 @@ func main() {
 		v1.GET("/deletebytime", deletebytime)
 		v1.GET("/backup", backup)
 	}
+
+	PProf(r)
 
 	go func() {
 		srv := &http.Server{
