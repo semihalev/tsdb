@@ -551,5 +551,7 @@ func main() {
 
 	<-c
 
-	db.Sync()
+	if *flagnosync {
+		db.Sync()
+	}
 }
