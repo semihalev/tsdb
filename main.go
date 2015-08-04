@@ -413,7 +413,7 @@ func backup(c *gin.Context) {
 }
 
 func expire() {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
 
 	for _ = range ticker.C {
