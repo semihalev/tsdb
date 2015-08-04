@@ -316,7 +316,7 @@ func count(c *gin.Context) {
 		return
 	}
 
-	var cnt int64
+	var cnt int
 
 	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(series))
@@ -324,11 +324,8 @@ func count(c *gin.Context) {
 			return fmt.Errorf("Series not found!")
 		}
 
-		cursor := bucket.Cursor()
-
-		for k, _ := cursor.First(); k != nil; k, _ = cursor.Next() {
-			cnt++
-		}
+		stats := bucket.Stats()
+		cnt = stats.KeyN
 
 		return nil
 	})
