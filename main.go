@@ -158,7 +158,7 @@ func asyncwrite(c *gin.Context) {
 	}
 
 	go func() {
-		err := db.Update(func(tx *bolt.Tx) error {
+		err := db.Batch(func(tx *bolt.Tx) error {
 			bucket := tx.Bucket([]byte(series))
 			var err error
 			if bucket == nil {
@@ -233,7 +233,7 @@ func write(c *gin.Context) {
 		ttl = "0"
 	}
 
-	err := db.Update(func(tx *bolt.Tx) error {
+	err := db.Batch(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(series))
 		var err error
 		if bucket == nil {
@@ -284,7 +284,7 @@ func delete(c *gin.Context) {
 		return
 	}
 
-	err := db.Update(func(tx *bolt.Tx) error {
+	err := db.Batch(func(tx *bolt.Tx) error {
 		err := tx.DeleteBucket([]byte(series))
 		if err != nil {
 			return err
@@ -365,7 +365,7 @@ func deletebytime(c *gin.Context) {
 		return
 	}
 
-	err := db.Update(func(tx *bolt.Tx) error {
+	err := db.Batch(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(series))
 		if bucket == nil {
 			return fmt.Errorf("Series not found!")
@@ -413,21 +413,14 @@ func backup(c *gin.Context) {
 }
 
 func expire() {
-	ticker := time.NewTicker(60 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	for _ = range ticker.C {
 		log.Println("Expire keys batch running...")
 		expirecounter := 0
 
-		func() {
-			tx, err := db.Begin(true)
-			if err != nil {
-				return
-			}
-
-			defer tx.Rollback()
-
+		db.Batch(func(tx *bolt.Tx) error {
 			now := time.Now()
 			bttl := tx.Bucket([]byte(TTL_SERIES))
 			var expiretime string
@@ -460,8 +453,8 @@ func expire() {
 				return nil
 			})
 
-			tx.Commit()
-		}()
+			return nil
+		})
 
 		log.Println("Expire keys batch finished.", expirecounter, "key expired.")
 	}
@@ -500,7 +493,7 @@ func main() {
 		log.Fatal("parse sync duration error", err)
 	}
 
-	go expire()
+	//go expire()
 
 	go func() {
 		prev := db.Stats()
