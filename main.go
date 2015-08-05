@@ -412,15 +412,17 @@ func backup(c *gin.Context) {
 	}
 }
 
-func expireKeys(series []byte, keys [][]byte) {
+func expireKeys(buckets map[string][][]byte) {
 	db.Batch(func(tx *bolt.Tx) error {
-		b := tx.Bucket(series)
-		if b == nil {
-			return nil
-		}
+		for series, keys := range buckets {
+			b := tx.Bucket([]byte(series))
+			if b == nil {
+				continue
+			}
 
-		for _, key := range keys {
-			b.Delete(key)
+			for _, key := range keys {
+				b.Delete(key)
+			}
 		}
 
 		return nil
@@ -436,6 +438,7 @@ func expire() {
 
 		expirecounter := 0
 
+		buckets := make(map[string][][]byte)
 		db.View(func(tx *bolt.Tx) error {
 			now := time.Now()
 			bttl := tx.Bucket([]byte(TTL_SERIES_META))
@@ -468,7 +471,11 @@ func expire() {
 				}
 
 				if len(keys) > 0 {
-					expireKeys(series, keys)
+					buckets[string(series)] = keys
+				}
+
+				if expirecounter > 1e6 {
+					return nil
 				}
 
 				return nil
@@ -476,6 +483,10 @@ func expire() {
 
 			return nil
 		})
+
+		if len(buckets) > 0 {
+			go expireKeys(buckets)
+		}
 
 		log.Println("Expire keys batch finished.", expirecounter, "key expired.")
 	}
