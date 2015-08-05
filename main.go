@@ -467,7 +467,9 @@ func expire() {
 					expirecounter++
 				}
 
-				go expireKeys(series, keys)
+				if len(keys) > 0 {
+					go expireKeys(series, keys)
+				}
 
 				return nil
 			})
