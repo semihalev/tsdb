@@ -35,7 +35,7 @@ var stats bolt.Stats
 var defaultexpire time.Duration
 
 const (
-	TTL_SERIES = "_TTL_SERIES"
+	TTL_SERIES_META = "_TTL_SERIES"
 )
 
 func query(c *gin.Context) {
@@ -167,7 +167,7 @@ func asyncwrite(c *gin.Context) {
 					return err
 				}
 
-				bttl := tx.Bucket([]byte(TTL_SERIES))
+				bttl := tx.Bucket([]byte(TTL_SERIES_META))
 				bttl.Put([]byte(series), []byte(ttl))
 			}
 
@@ -242,7 +242,7 @@ func write(c *gin.Context) {
 				return err
 			}
 
-			bttl := tx.Bucket([]byte(TTL_SERIES))
+			bttl := tx.Bucket([]byte(TTL_SERIES_META))
 			bttl.Put([]byte(series), []byte(ttl))
 		}
 
@@ -412,21 +412,37 @@ func backup(c *gin.Context) {
 	}
 }
 
+func expireKeys(series []byte, keys [][]byte) {
+	db.Batch(func(tx *bolt.Tx) error {
+		b := tx.Bucket(series)
+		if b == nil {
+			return nil
+		}
+
+		for _, key := range keys {
+			b.Delete(key)
+		}
+
+		return nil
+	})
+}
+
 func expire() {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
 
 	for _ = range ticker.C {
 		log.Println("Expire keys batch running...")
+
 		expirecounter := 0
 
-		db.Batch(func(tx *bolt.Tx) error {
+		db.View(func(tx *bolt.Tx) error {
 			now := time.Now()
-			bttl := tx.Bucket([]byte(TTL_SERIES))
+			bttl := tx.Bucket([]byte(TTL_SERIES_META))
 			var expiretime string
 
 			tx.ForEach(func(series []byte, b *bolt.Bucket) error {
-				if string(series) == TTL_SERIES {
+				if string(series) == TTL_SERIES_META {
 					return nil
 				}
 
@@ -445,10 +461,13 @@ func expire() {
 				min := []byte("1")
 				max := []byte(expiretime)
 
+				var keys [][]byte
 				for k, _ := c.Seek(min); k != nil && bytes.Compare(k, max) <= 0; k, _ = c.Next() {
-					b.Delete(k)
+					keys = append(keys, k)
 					expirecounter++
 				}
+
+				go expireKeys(series, keys)
 
 				return nil
 			})
@@ -477,7 +496,7 @@ func main() {
 	defer db.Close()
 
 	db.Update(func(tx *bolt.Tx) error {
-		tx.CreateBucketIfNotExists([]byte(TTL_SERIES))
+		tx.CreateBucketIfNotExists([]byte(TTL_SERIES_META))
 		return nil
 	})
 
@@ -493,7 +512,7 @@ func main() {
 		log.Fatal("parse sync duration error", err)
 	}
 
-	//go expire()
+	go expire()
 
 	go func() {
 		prev := db.Stats()
