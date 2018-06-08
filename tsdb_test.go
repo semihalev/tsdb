@@ -182,6 +182,11 @@ func TestBackup(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestShrink(t *testing.T) {
+	_, err := fetch("/shrink")
+	assert.NoError(t, err)
+}
+
 func Benchmark_Write(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		if _, err := fetch("/api/v1/write?series=world&value=hello"); err != nil {

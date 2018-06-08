@@ -318,6 +318,16 @@ func backup(c *gin.Context) {
 	}
 }
 
+func shrink(c *gin.Context) {
+	err := db.Shrink()
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.String(http.StatusOK, "ok")
+}
+
 func getStats(c *gin.Context) {
 	c.JSON(http.StatusOK, stats.Report())
 }
@@ -337,6 +347,7 @@ func runWebServer(addr string) {
 	}
 
 	r.GET("/backup", backup)
+	r.GET("/shrink", shrink)
 	r.GET("/stats", getStats)
 
 	go func() {
