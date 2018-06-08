@@ -189,6 +189,7 @@ func TestShrink(t *testing.T) {
 
 func TestMain(t *testing.T) {
 	*flagLogLvl = "crit"
+	*flaghttp = ":4081"
 	go main()
 }
 
