@@ -58,9 +58,9 @@ $ curl http://127.0.0.1:4080/backup -o backup.db
 
 ## PHP Example Usage
 
-tsdb::query()
-tsdb::write()
-tsdb::count()
-tsdb::delete()
-tsdb::deletebytime()
+- tsdb::query()
+- tsdb::write()
+- tsdb::count()
+- tsdb::delete()
+- tsdb::deletebytime()
 
