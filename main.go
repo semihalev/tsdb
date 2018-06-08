@@ -307,20 +307,11 @@ func backup(c *gin.Context) {
 	c.Writer.Header().Set("Content-Type", "application/octet-stream")
 	c.Writer.Header().Set("Content-Disposition", "attachment; filename="+filename)
 
-	err := db.Save(c.Writer)
-
-	if err != nil {
-		c.String(http.StatusInternalServerError, "database backup error")
-	}
+	db.Save(c.Writer)
 }
 
 func shrink(c *gin.Context) {
-	err := db.Shrink()
-	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
-	}
-
+	db.Shrink()
 	c.String(http.StatusOK, "ok")
 }
 

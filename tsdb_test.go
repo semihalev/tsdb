@@ -228,6 +228,11 @@ func TestShrink(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestStats(t *testing.T) {
+	_, err := fetch("/stats")
+	assert.NoError(t, err)
+}
+
 func TestMain(t *testing.T) {
 	*flagLogLvl = "crit"
 	*flaghttp = ":4081"
