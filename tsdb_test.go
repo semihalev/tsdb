@@ -31,6 +31,8 @@ func init() {
 
 	db, _ = buntdb.Open(":memory:")
 	runWebServer("127.0.0.1:4080")
+
+	time.Sleep(500 * time.Millisecond)
 }
 
 func dialTimeout(network, addr string) (net.Conn, error) {
