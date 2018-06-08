@@ -112,6 +112,13 @@ func TestWriteAll(t *testing.T) {
 	assert.Contains(t, result, "\"status\":\"ok\"")
 }
 
+func TestWriteDBFail(t *testing.T) {
+	db.Close()
+	_, err := fetch("/api/v1/write?series=world&value=hello")
+	assert.EqualError(t, err, "status code 503")
+	db, _ = buntdb.Open(":memory:")
+}
+
 func TestQuery(t *testing.T) {
 	_, err := writeHelloWorld()
 	assert.NoError(t, err)
@@ -120,6 +127,11 @@ func TestQuery(t *testing.T) {
 	assert.Contains(t, result, "\"status\":\"ok\"")
 	_, err = deleteHelloWorld()
 	assert.NoError(t, err)
+}
+
+func TestQueryFail(t *testing.T) {
+	_, err := fetch("/api/v1/query")
+	assert.EqualError(t, err, "status code 400")
 }
 
 func TestQueryAll(t *testing.T) {
@@ -131,20 +143,34 @@ func TestQueryAll(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestQueryEmpty(t *testing.T) {
+	_, err := fetch("/api/v1/query?series=none")
+	assert.EqualError(t, err, "status code 404")
+}
+
+func TestQueryDBFail(t *testing.T) {
+	db.Close()
+	_, err := fetch("/api/v1/query?series=world")
+	assert.EqualError(t, err, "status code 503")
+	db, _ = buntdb.Open(":memory:")
+}
+
 func TestDelete(t *testing.T) {
 	result, err := deleteHelloWorld()
 	assert.NoError(t, err)
 	assert.Contains(t, result, "\"status\":\"ok\"")
 }
 
-func TestQueryFail(t *testing.T) {
-	_, err := fetch("/api/v1/query")
-	assert.EqualError(t, err, "status code 400")
-}
-
 func TestDeleteFail(t *testing.T) {
 	_, err := fetch("/api/v1/delete")
 	assert.EqualError(t, err, "status code 400")
+}
+
+func TestDeleteDBFail(t *testing.T) {
+	db.Close()
+	_, err := fetch("/api/v1/delete?series=world")
+	assert.EqualError(t, err, "status code 503")
+	db, _ = buntdb.Open(":memory:")
 }
 
 func TestDeleteByTime(t *testing.T) {
@@ -162,6 +188,13 @@ func TestDeleteByTimeFail(t *testing.T) {
 	assert.EqualError(t, err, "status code 400")
 }
 
+func TestDeleteByTimeDBFail(t *testing.T) {
+	db.Close()
+	_, err := fetch("/api/v1/deletebytime?series=world&time=1")
+	assert.EqualError(t, err, "status code 503")
+	db, _ = buntdb.Open(":memory:")
+}
+
 func TestCount(t *testing.T) {
 	_, err := writeHelloWorld()
 	assert.NoError(t, err)
@@ -175,6 +208,14 @@ func TestCount(t *testing.T) {
 func TestCountFail(t *testing.T) {
 	_, err := fetch("/api/v1/count")
 	assert.EqualError(t, err, "status code 400")
+}
+
+func TestCountDBFail(t *testing.T) {
+	db.Close()
+	result, err := fetch("/api/v1/count?series=world")
+	assert.NoError(t, err)
+	assert.Contains(t, result, "\"result\":0")
+	db, _ = buntdb.Open(":memory:")
 }
 
 func TestBackup(t *testing.T) {

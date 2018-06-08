@@ -169,11 +169,7 @@ func write(c *gin.Context) {
 		}
 
 		_, _, err := tx.Set(key, value, opts)
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return err
 	})
 
 	if err != nil {
