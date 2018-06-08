@@ -16,7 +16,7 @@ BoltDB backend changed. If you update latest version, migrate your data first.
 + HTTP API support
 
 ## Roadmap
-- [x] Backend change
+- [x] Backend change to BuntDB
 - [ ] Redis server support
 - [ ] Raft support
 

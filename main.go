@@ -322,7 +322,7 @@ func getStats(c *gin.Context) {
 	c.JSON(http.StatusOK, stats.Report())
 }
 
-func runWebServer() {
+func runWebServer(addr string) {
 	r := gin.Default()
 
 	r.Use(stats.RequestStats())
@@ -341,7 +341,7 @@ func runWebServer() {
 
 	go func() {
 		srv := &http.Server{
-			Addr:         *flaghttp,
+			Addr:         addr,
 			Handler:      r,
 			ReadTimeout:  60 * time.Second,
 			WriteTimeout: 60 * time.Second,
@@ -383,7 +383,7 @@ func main() {
 
 	defer db.Close()
 
-	runWebServer()
+	runWebServer(*flaghttp)
 
 	log.Info("TSDB service started", "version", "v"+version)
 
