@@ -7,6 +7,10 @@ TSDB is lightweight in-memory time series database with [BuntDB](https://github.
 [![Go Report Card](https://goreportcard.com/badge/github.com/semihalev/tsdb)](https://goreportcard.com/report/github.com/semihalev/tsdb)
 [![GoDoc](https://godoc.org/github.com/semihalev/tsdb?status.svg)](https://godoc.org/github.com/semihalev/tsdb)
 
+## Warning
+
+BoltDB backend changed. If you update latest version, migrate your data first.
+
 ## Features
 + HTTP API support
 
