@@ -187,6 +187,11 @@ func TestShrink(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestMain(t *testing.T) {
+	*flagLogLvl = "crit"
+	go main()
+}
+
 func Benchmark_Write(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		if _, err := fetch("/api/v1/write?series=world&value=hello"); err != nil {
