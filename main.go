@@ -21,7 +21,7 @@ import (
 var (
 	flaghttp   = flag.String("http", ":4080", "http server addr")
 	flagcpus   = flag.Int("C", 1, "set the maximum number of CPUs to use")
-	flagdb     = flag.String("db", "ts.db", "database path")
+	flagdb     = flag.String("db", "ts.db", "database path, not persist set \":memory:\"")
 	flagexpire = flag.Duration("expire", time.Duration(0), "default data expire period")
 	flagLogLvl = flag.String("L", "info", "Log verbosity level [crit,error,warn,info,debug]")
 )

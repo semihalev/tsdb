@@ -48,12 +48,12 @@ func dialTimeout(network, addr string) (net.Conn, error) {
 	return c, nil
 }
 
-func fetch(url string) (string, error) {
+func fetch(uri string) (string, error) {
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
 
-	resp, err := client.Get(url)
+	resp, err := client.Get(fmt.Sprintf("http://127.0.0.1:4080%s", uri))
 	if err != nil {
 		return "", err
 	}
@@ -72,59 +72,119 @@ func fetch(url string) (string, error) {
 	return string(data), nil
 }
 
-func writeHelloWorld(t *testing.T) {
-
-	result, err := fetch("http://127.0.0.1:4080/api/v1/write?series=world&value=hello")
+func writeHelloWorld() (string, error) {
+	result, err := fetch("/api/v1/write?series=world&value=hello")
 	if err != nil {
-		t.Errorf("Error: %v", err)
-		return
+		return "", err
 	}
-	assert.Contains(t, result, "\"status\":\"ok\"")
+	return result, nil
 }
 
-func deleteHelloWorld(t *testing.T) {
-	result, err := fetch("http://127.0.0.1:4080/api/v1/delete?series=world")
+func deleteHelloWorld() (string, error) {
+	result, err := fetch("/api/v1/delete?series=world")
 	if err != nil {
-		t.Errorf("Error: %v", err)
-		return
+		return "", err
 	}
-	assert.Contains(t, result, "\"status\":\"ok\"")
+	return result, nil
 }
 
 func TestWrite(t *testing.T) {
-	writeHelloWorld(t)
-	deleteHelloWorld(t)
+	result, err := writeHelloWorld()
+	assert.NoError(t, err)
+	assert.Contains(t, result, "\"status\":\"ok\"")
+
+	_, err = deleteHelloWorld()
+	assert.NoError(t, err)
+}
+
+func TestWriteFail(t *testing.T) {
+	_, err := fetch("/api/v1/write")
+	assert.EqualError(t, err, "status code 400")
+	_, err = fetch("/api/v1/write?series=world")
+	assert.EqualError(t, err, "status code 400")
+	_, err = fetch("/api/v1/write?series=world&value=hello&ttl=5")
+	assert.EqualError(t, err, "status code 400")
+}
+
+func TestWriteAll(t *testing.T) {
+	result, err := fetch("/api/v1/write?series=world&value=hellottl&ttl=5m")
+	assert.NoError(t, err)
+	assert.Contains(t, result, "\"status\":\"ok\"")
 }
 
 func TestQuery(t *testing.T) {
-	writeHelloWorld(t)
-	result, err := fetch("http://127.0.0.1:4080/api/v1/query?series=world")
-	if err != nil {
-		t.Errorf("Error: %v", err)
-		return
-	}
+	_, err := writeHelloWorld()
+	assert.NoError(t, err)
+	result, err := fetch("/api/v1/query?series=world")
+	assert.NoError(t, err)
 	assert.Contains(t, result, "\"status\":\"ok\"")
-	deleteHelloWorld(t)
+	_, err = deleteHelloWorld()
+	assert.NoError(t, err)
+}
+
+func TestQueryAll(t *testing.T) {
+	_, err := writeHelloWorld()
+	assert.NoError(t, err)
+	_, err = writeHelloWorld()
+	assert.NoError(t, err)
+	_, err = fetch("/api/v1/query?series=world&limit=1&offset=1&order=asc")
+	assert.NoError(t, err)
 }
 
 func TestDelete(t *testing.T) {
-	deleteHelloWorld(t)
+	result, err := deleteHelloWorld()
+	assert.NoError(t, err)
+	assert.Contains(t, result, "\"status\":\"ok\"")
+}
+
+func TestQueryFail(t *testing.T) {
+	_, err := fetch("/api/v1/query")
+	assert.EqualError(t, err, "status code 400")
+}
+
+func TestDeleteFail(t *testing.T) {
+	_, err := fetch("/api/v1/delete")
+	assert.EqualError(t, err, "status code 400")
+}
+
+func TestDeleteByTime(t *testing.T) {
+	_, err := fetch("/api/v1/write?series=world&time=111111111&value=hello")
+	assert.NoError(t, err)
+	result, err := fetch("/api/v1/deletebytime?series=world&time=111111111")
+	assert.NoError(t, err)
+	assert.Contains(t, result, "\"status\":\"ok\"")
+}
+
+func TestDeleteByTimeFail(t *testing.T) {
+	_, err := fetch("/api/v1/deletebytime")
+	assert.EqualError(t, err, "status code 400")
+	_, err = fetch("/api/v1/deletebytime?series=world")
+	assert.EqualError(t, err, "status code 400")
 }
 
 func TestCount(t *testing.T) {
-	writeHelloWorld(t)
-	result, err := fetch("http://127.0.0.1:4080/api/v1/count?series=world")
-	if err != nil {
-		t.Errorf("Error: %v", err)
-		return
-	}
+	_, err := writeHelloWorld()
+	assert.NoError(t, err)
+	result, err := fetch("/api/v1/count?series=world")
+	assert.NoError(t, err)
 	assert.Contains(t, result, "\"result\":1")
-	deleteHelloWorld(t)
+	_, err = deleteHelloWorld()
+	assert.NoError(t, err)
+}
+
+func TestCountFail(t *testing.T) {
+	_, err := fetch("/api/v1/count")
+	assert.EqualError(t, err, "status code 400")
+}
+
+func TestBackup(t *testing.T) {
+	_, err := fetch("/backup")
+	assert.NoError(t, err)
 }
 
 func Benchmark_Write(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		if _, err := fetch("http://127.0.0.1:4080/api/v1/write?series=world&value=hello"); err != nil {
+		if _, err := fetch("/api/v1/write?series=world&value=hello"); err != nil {
 			b.Fail()
 		}
 	}
