@@ -6,6 +6,7 @@ TSDB is lightweight in-memory time series database with [BuntDB](https://github.
 [![codecov](https://codecov.io/gh/semihalev/tsdb/branch/master/graph/badge.svg)](https://codecov.io/gh/semihalev/tsdb)
 [![Go Report Card](https://goreportcard.com/badge/github.com/semihalev/tsdb)](https://goreportcard.com/report/github.com/semihalev/tsdb)
 [![GoDoc](https://godoc.org/github.com/semihalev/tsdb?status.svg)](https://godoc.org/github.com/semihalev/tsdb)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fsemihalev%2Ftsdb.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fsemihalev%2Ftsdb?ref=badge_shield)
 
 ## Warning
 ```
@@ -74,3 +75,7 @@ $ curl http://127.0.0.1:4080/backup -o backup.db
 - tsdb::delete()
 - tsdb::deletebytime()
 
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fsemihalev%2Ftsdb.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fsemihalev%2Ftsdb?ref=badge_large)
